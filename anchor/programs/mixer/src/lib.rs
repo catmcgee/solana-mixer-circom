@@ -12,7 +12,7 @@ use verifier::{get_verification_key, verify_proof, Proof, PublicInputs};
 
 declare_id!("BKkVngJDT8GNKDDcjhH7oyPAC4NQNUgKmVotWDnkUspa");
 
-// BN254 scalar field prime - addresses are reduced mod this value in the ZK circuit
+// BN254 scalar field prime (big-endian bytes)
 const BN254_PRIME: [u8; 32] = [
     0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29,
     0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81, 0x58, 0x5d,
@@ -20,34 +20,35 @@ const BN254_PRIME: [u8; 32] = [
     0x43, 0xe1, 0xf5, 0x93, 0xf0, 0x00, 0x00, 0x01,
 ];
 
-// Convert pubkey bytes to field element (mod BN254_PRIME if >= prime)
+// Convert pubkey to field element (mod BN254_PRIME if >= prime)
 fn pubkey_to_field_element(pubkey: &Pubkey) -> [u8; 32] {
     let bytes = pubkey.to_bytes();
     
-    // Compare bytes (big-endian style comparison)
-    let mut is_greater_or_equal = false;
-    for i in (0..32).rev() {
-        if bytes[31 - i] > BN254_PRIME[i] {
-            is_greater_or_equal = true;
+    // Compare as big-endian: MSB first (index 0)
+    let mut is_gte = false;
+    for i in 0..32 {
+        if bytes[i] > BN254_PRIME[i] {
+            is_gte = true;
             break;
-        } else if bytes[31 - i] < BN254_PRIME[i] {
+        } else if bytes[i] < BN254_PRIME[i] {
             break;
         }
-        if i == 0 {
-            is_greater_or_equal = true;
+        // If we reach here on last byte and all equal, pubkey == prime
+        if i == 31 {
+            is_gte = true;
         }
     }
     
-    if !is_greater_or_equal {
+    if !is_gte {
         return bytes;
     }
     
-    // Subtract prime (simple subtraction since we know bytes >= prime)
+    // Subtract prime: big-endian subtraction starts from LSB (index 31)
     let mut result = [0u8; 32];
-    let mut borrow = 0i16;
+    let mut borrow: i16 = 0;
     
-    for i in 0..32 {
-        let diff = (bytes[i] as i16) - (BN254_PRIME[31 - i] as i16) - borrow;
+    for i in (0..32).rev() {
+        let diff = (bytes[i] as i16) - (BN254_PRIME[i] as i16) - borrow;
         if diff < 0 {
             result[i] = (diff + 256) as u8;
             borrow = 1;
