@@ -1,0 +1,30 @@
+{
+  "name": "solana-mixer",
+  "private": true,
+  "workspaces": ["app", "anchor/tests"],
+  "scripts": {
+    "dev": "cd app && bun run dev",
+    "build": "cd app && bun run build",
+    "test": "cd anchor && anchor test",
+    "circuits:compile": "PATH=$HOME/.cargo/bin:$PATH circom circuits/withdraw.circom --r1cs --wasm --sym -o build/withdraw",
+    "circuits:ptau:new": "[ -f build/pot18_0000.ptau ] && echo 'skip' || bunx snarkjs powersoftau new bn128 18 build/pot18_0000.ptau -v",
+    "circuits:ptau:contribute": "[ -f build/pot18_0001.ptau ] && echo 'skip' || bunx snarkjs powersoftau beacon build/pot18_0000.ptau build/pot18_0001.ptau 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 10",
+    "circuits:ptau:prepare": "[ -f build/pot18_final.ptau ] && echo 'skip' || bunx snarkjs powersoftau prepare phase2 build/pot18_0001.ptau build/pot18_final.ptau -v",
+    "circuits:setup": "mkdir -p build/withdraw && bunx snarkjs groth16 setup build/withdraw/withdraw.r1cs build/pot18_final.ptau build/withdraw/withdraw_0000.zkey",
+    "circuits:setup:contribute": "bunx snarkjs zkey beacon build/withdraw/withdraw_0000.zkey build/withdraw/withdraw_final.zkey 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef 10",
+    "circuits:setup:vk": "bunx snarkjs zkey export verificationkey build/withdraw/withdraw_final.zkey build/withdraw/verification_key.json",
+    "circuits:input": "bun scripts/generate-input.ts",
+    "circuits:witness": "bunx snarkjs wtns calculate build/withdraw/withdraw_js/withdraw.wasm build/withdraw/input.json build/withdraw/witness.wtns",
+    "circuits:prove": "bunx snarkjs groth16 prove build/withdraw/withdraw_final.zkey build/withdraw/witness.wtns build/withdraw/proof.json build/withdraw/public.json",
+    "circuits:verify": "bunx snarkjs groth16 verify build/withdraw/verification_key.json build/withdraw/public.json build/withdraw/proof.json",
+    "circuits:full": "bun run circuits:compile && bun run circuits:ptau:new && bun run circuits:ptau:contribute && bun run circuits:ptau:prepare && bun run circuits:setup && bun run circuits:setup:contribute && bun run circuits:setup:vk",
+    "vk:convert": "bun scripts/convert-vk.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.5",
+    "typescript": "^5"
+  }
+}
