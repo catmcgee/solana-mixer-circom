@@ -7,7 +7,7 @@
     "test": "TS_NODE_PROJECT=./tsconfig.json mocha -r ts-node/register './**/*.test.ts' --timeout 1000000"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.31.1",
+    "@coral-xyz/anchor": "^0.32.1",
     "@solana/web3.js": "^1.95.0",
     "chai": "^4.3.10",
     "circomlibjs": "^0.1.7",

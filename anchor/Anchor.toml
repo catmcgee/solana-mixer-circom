@@ -1,14 +1,9 @@
 [toolchain]
+anchor_version = "0.32.1"
 
 [features]
 resolution = true
 skip-lint = false
-
-[test]
-startup_wait = 10000
-
-[test.validator]
-ledger = ".anchor/test-ledger"
 
 [programs.localnet]
 mixer = "BKkVngJDT8GNKDDcjhH7oyPAC4NQNUgKmVotWDnkUspa"
@@ -21,4 +16,14 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cd tests && bun test"
+test = "cd tests && bun run test"
+
+[test]
+startup_wait = 10000
+shutdown_wait = 2000
+upgradeable = false
+
+[test.validator]
+bind_address = "127.0.0.1"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
